@@ -1,19 +1,39 @@
-const apiKey = 'dadd1e684048826da74d461c526f6075'; // Replace 'YOUR_API_KEY' with your TMDb API key
+// const apiKey = 'dadd1e684048826da74d461c526f6075'; // Replace 'YOUR_API_KEY' with your TMDb API key
 
-const options = { method: 'GET', headers: { accept: 'application/json' } };
+// const options = { method: 'GET', headers: { accept: 'application/json' } };
 
 // fetch('https://api.themoviedb.org/3/authentication', options)
 //   .then(response => response.json())
 //   .then(response => console.log(response))
 //   .catch(err => console.error(err));
 
-async function fetchMovies() {
+class TheMovieDBCommunicator {
+    constructor(apiKey) {
+        this.apiKey = apiKey;
+        this.baseURL = 'https://api.themoviedb.org/3';
+    }
+
+    async fetchPopularMovies() {
+        try {
+            const response = await fetch(`${this.baseURL}/movie/popular?api_key=${this.apiKey}`);
+            const data = await response.json();
+            return data.results;
+        } catch (error) {
+            console.error('Error fetching popular movies:', error);
+            return [];
+        }
+    }
+}
+
+const apiKey = 'dadd1e684048826da74d461c526f6075';
+const movieDBCommunicator = new TheMovieDBCommunicator(apiKey);
+
+async function displayPopularMovies() {
     try {
-        const response = await fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}`);
-        const data = await response.json();
-        displayMovies(data.results);
+        const movies = await movieDBCommunicator.fetchPopularMovies();
+        displayMovies(movies);
     } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error displaying popular movies:', error);
     }
 }
 
@@ -41,4 +61,16 @@ function displayMovies(movies) {
     });
 }
 
-fetchMovies();
+
+window.addEventListener('DOMContentLoaded', () => {
+    displayPopularMovies();
+});
+
+window.addEventListener('scroll', function () {
+    const navbar = document.querySelector('#navbar');
+    if (window.scrollY > 0) {
+        navbar.classList.add('navbar-sticky');
+    } else {
+        navbar.classList.remove('navbar-sticky');
+    }
+});
