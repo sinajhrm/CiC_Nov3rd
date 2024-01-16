@@ -22,16 +22,6 @@ h1 {
     color: #333;
 }
 
-.movie {
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    padding: 10px;
-    margin: 10px;
-    display: inline-block;
-    width: 200px;
-    background-color: #ccc;
-}
-
 .movie img {
     width: 100%;
     height: auto;
@@ -50,18 +40,26 @@ h1 {
 }
 
 .movie {
+    width: 200px;
+    display: inline-block;
+    background-color: #ccc;
     border: 1px solid #ccc;
     border-radius: 5px;
     padding: 10px;
     text-align: center;
     width: calc(100% - 20px);
     margin: 0;
+    transition-duration: 250ms;
 }
 
-.movie:hover
-{
+.movie:hover {
     box-shadow: 0px 0px 15px white;
-    transition-duration: 1000ms;
+    transition-duration: 250ms;
+}
+
+.movie-watchlisted {
+    box-shadow: 0px 0px 10px rgb(0, 182, 67);
+    transition-duration: 250ms;
 }
 
 .movie img {
@@ -115,12 +113,24 @@ h1 {
     color: white;
     text-decoration: none;
     font-weight: bold;
+    cursor: pointer;
 }
 
 .nav-links li a:hover {
     color: #ffd700;
 }
 
+/*
+Pseudoelement Idea was awesome:
+https://stackoverflow.com/a/77796790 */
+[movie-tooltip]:hover::after {
+    display: block;
+    position: absolute;
+    content: attr(movie-tooltip);
+    border: 1px solid black;
+    background: #eee;
+    padding: .25em;
+}
 
 @media (min-width: 1200px) {
     .movies-grid {

@@ -1,29 +1,24 @@
-// const apiKey = 'dadd1e684048826da74d461c526f6075'; // Replace 'YOUR_API_KEY' with your TMDb API key
-
-// const options = { method: 'GET', headers: { accept: 'application/json' } };
-
-// fetch('https://api.themoviedb.org/3/authentication', options)
-//   .then(response => response.json())
-//   .then(response => console.log(response))
-//   .catch(err => console.error(err));
-
 class TheMovieDBCommunicator {
     /**
      * @param {String} apiKey The accuired API key from TheMoviesDB API
-     * @param {boolean} initSession If True, a new sessionId will be initilized in the constrcutor of the class
      */
-    constructor(apiKey, initSession = false) {
+    constructor(apiKey) {
         this.apiKey = apiKey;
         this.baseURL = 'https://api.themoviedb.org/3';
-        this.sessionId = null;
-        if (initSession)
-            this.sessionId = this.createSession();
+        this.watchlist_endpoint = 'https://656d0381e1e03bfd572ee9ba.mockapi.io/ReactApp/watchlist'
+        this.UserWatchList = [];
+    }
+
+    isMoveIdInWatchList(movieId) {
+        if (this.UserWatchList.filter((watchlistItem => watchlistItem.movieid === movieId)).length > 0)
+            return true;
+        else
+            return false;
     }
 
     /**
      * Async function to get popular movies
-     * @returns Void
-     * 
+     * @returns list of popular movies on successful request, otherwise an empty list
      */
     async fetchPopularMovies() {
         try {
@@ -37,66 +32,145 @@ class TheMovieDBCommunicator {
     }
 
     /**
+     * Async function to get new movies
+     * @returns list of popular movies on successful request, otherwise an empty list
      * 
-     * @returns Async function to create a new session
      */
-    async createSession() {
+    async fetchNewMovies() {
+        const options = {
+            method: 'GET',
+            headers: {
+                accept: 'application/json',
+                Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJkYWRkMWU2ODQwNDg4MjZkYTc0ZDQ2MWM1MjZmNjA3NSIsInN1YiI6IjY1NjkzNWVlZDA0ZDFhMDEwZDYzN2NhNyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.VlXS40i7PLiJPMUyeI9BU7cX5fE4nZOUVsOVoCQ_Gsk'
+            }
+        };
         try {
-            const response = await fetch(`${this.baseURL}/authentication/session/new?api_key=${this.apiKey}`, {
-                method: 'POST',
-            });
+            const response = await fetch('https://api.themoviedb.org/3/movie/upcoming?language=en-US&page=1', options);
             const data = await response.json();
-            this.sessionId = data.session_id;
-            return true;
+            return data.results;
         } catch (error) {
-            console.error('Error creating session:', error);
-            return false;
+            console.error('Error fetching popular movies:', error);
+            return [];
         }
     }
 
     /**
-     * Uses the movie ID as a string to add it to the watchlist associated with the current session IS
-     * @param {String} movieId 
+     * Async function to get popular tv-shows
+     * @returns list of popular tv-shows on successful request, otherwise an empty list
+     * 
+     */
+    async fetchPopularTVShows() {
+        try {
+            const response = await fetch(`${this.baseURL}/tv/popular?api_key=${this.apiKey}`);
+            const data = await response.json();
+            return data.results;
+        } catch (error) {
+            console.error('Error fetching popular movies:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Uses the movie ID as a string to add it to the watchlist
+     * @param {String} movieid 
      * @returns Void
      */
-    async addToWatchlist(movieId) {
-        if (!this.sessionId) {
-            const created = await this.createSession();
-            if (!created) {
-                console.error('Failed to create session. Cannot add to watchlist.');
-                return false;
-            }
-        }
-
+    async addToWatchlist(movieid) {
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ movieid: String(movieid) })
+        };
         try {
-            const response = await fetch(`${this.baseURL}/account/{account_id}/watchlist?api_key=${this.apiKey}&session_id=${this.sessionId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json;charset=utf-8',
-                },
-                body: JSON.stringify({
-                    media_type: 'movie',
-                    media_id: movieId,
-                    watchlist: true
-                })
-            });
+
+            const response = await fetch(this.watchlist_endpoint, options)
+            let addToWatchListResposne = (await response).json()
+        }
+        catch (err) {
+            console.error(err)
+        }
+    }
+
+    /**
+     * Uses the movie ID as a string to remove it from the watchlist
+     * @param {String} movieid 
+     * @returns Void
+     */
+    async removeFromWatchlist(movieid) {
+
+        const movieIdToRemove = this.UserWatchList.filter(watchListItem => watchListItem.movieid === movieid)[0].id;
+
+        const options = {
+            method: 'DELETE',
+        };
+        try {
+
+            const response = await fetch(this.watchlist_endpoint + `/${String(movieIdToRemove)}`, options)
+            let addToWatchListResposne = (await response).json()
+            this.UserWatchList = this.UserWatchList.filter(watchListItem => watchListItem.movieid !== movieid);
+        }
+        catch (err) {
+            console.error(err)
+        }
+    }
+
+    async UpdateWatchList() {
+        const options = {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        };
+        try {
+            this.UserWatchList = [];
+            const response = await fetch(this.watchlist_endpoint, options);
             const data = await response.json();
-            return data.success;
-        } catch (error) {
-            console.error('Error adding to watchlist:', error);
-            return false;
+            this.UserWatchList = data;
+            // for (let index = 0; index < data.length; index++) {
+            //     this.UserWatchList.push(data[index].movieid);
+            // }
+            // this.UserWatchList = data;
+        }
+        catch (err) {
+            console.error(err)
         }
     }
 }
 
 const apiKey = 'dadd1e684048826da74d461c526f6075';
 //Create a global instance of TheMovieDBCommunicator class
-const movieDBCommunicator = new TheMovieDBCommunicator(apiKey);
+const movieDBCommunicator = new TheMovieDBCommunicator(apiKey, true);
+
 
 // Async function to get and display popular movies
 async function displayPopularMovies() {
     try {
         const movies = await movieDBCommunicator.fetchPopularMovies();
+        await movieDBCommunicator.UpdateWatchList();
+        displayMovies(movies);
+    } catch (error) {
+        console.error('Error displaying popular movies:', error);
+    }
+}
+
+// Async function to get and display new movies
+async function displayNewMovies() {
+    try {
+        const movies = await movieDBCommunicator.fetchNewMovies();
+        await movieDBCommunicator.UpdateWatchList();
+        displayMovies(movies);
+    } catch (error) {
+        console.error('Error displaying popular movies:', error);
+    }
+}
+
+// Async function to get and display popular tv shows
+async function displayPopularTVShows() {
+    try {
+        const movies = await movieDBCommunicator.fetchPopularTVShows();
+        await movieDBCommunicator.UpdateWatchList();
         displayMovies(movies);
     } catch (error) {
         console.error('Error displaying popular movies:', error);
@@ -106,11 +180,20 @@ async function displayPopularMovies() {
 // Adds the list of movies to the main grid view
 function displayMovies(movies) {
     const moviesGrid = document.getElementById('movies-grid');
+    moviesGrid.innerHTML = "";
 
     movies.forEach(movie => {
         //Creating the movie card view (this will be the grid view item in the main UI)
         const movieElement = document.createElement('div');
+        movieElement.id = movie.id;
         movieElement.classList.add('movie');
+        movieElement.setAttribute('movie-tooltip', "Double click to add to watchlist!")
+        if (movieDBCommunicator.isMoveIdInWatchList(String(movie.id))) {
+            movieElement.classList.add('movie-watchlisted');
+            movieElement.setAttribute('movie-tooltip', "Double click to remove from watchlist!")
+        }
+
+        movieElement.addEventListener("dblclick", (event) => { toggleMovieIdInWatchList(event.currentTarget, String(movie.id)) })
 
         const imageUrl = `https://image.tmdb.org/t/p/w500/${movie.poster_path}`;
 
@@ -128,6 +211,24 @@ function displayMovies(movies) {
         moviesGrid.appendChild(movieElement);
     });
 }
+/**
+ * Toggles movie by movieId in MockAPI's list and UI 
+ * @param {HTMLElement} target 
+ * @param {string} movieid 
+ */
+function toggleMovieIdInWatchList(target, movieid) {
+    if (movieDBCommunicator.isMoveIdInWatchList(movieid)) {
+        movieDBCommunicator.removeFromWatchlist(movieid);
+        target.classList.remove('movie-watchlisted')
+        target.setAttribute('movie-tooltip', "Double click to add to watchlist!")
+    }
+    else {
+        movieDBCommunicator.addToWatchlist(movieid);
+        target.classList.add('movie-watchlisted')
+        target.setAttribute('movie-tooltip', "Double click to remove from watchlist!")
+    }
+    movieDBCommunicator.UpdateWatchList();
+}
 
 // Controls the sticky navbar behaviour
 window.addEventListener('scroll', function () {
@@ -139,8 +240,14 @@ window.addEventListener('scroll', function () {
     }
 });
 
+document.getElementById('btn-popmovies').addEventListener('click', displayPopularMovies);
+document.getElementById('btn-poptvshows').addEventListener('click', displayPopularTVShows);
+document.getElementById('btn-newmovies').addEventListener('click', displayNewMovies);
+
 
 // The event which is trigerred after the page loads completely.
 window.addEventListener('DOMContentLoaded', () => {
     displayPopularMovies();
 });
+
+// movieDBCommunicator.addToWatchlist("753342")
